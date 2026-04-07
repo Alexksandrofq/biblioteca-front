@@ -9,14 +9,45 @@ const cadastro = ref({
     dsEmail: '',
 });
 
-const handlerCadastro = () => {
-    console.log(cadastro.value);
+const handlerCadastro = async () => {
+    const payload = {
+        nmBibliotecario: cadastro.value.nmBibliotecario,
+        cdSenha: cadastro.value.cdSenha,
+        dtNascimento: cadastro.value.dtNascimento,
+        tpSexo: cadastro.value.tpSexo,
+        dsEmail: cadastro.value.dsEmail,
+    };
+
+    const response = await fetch('http://127.0.0.1:8080/bibliotecarios', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        throw new Error('Erro ao cadastrar bibliotecario.');
+    }
+
+    Toastify({
+        text: "Cadastro realizado com sucesso!",
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "bottom",
+        position: "right",
+        stopOnFocus: true,
+        style: {
+            background: "#22c55e",
+        },
+    }).showToast();
 }
 </script>
 
 <template>
     <main>
-        <section class="cadastro-card">
+        <form class="cadastro-card" @submit.prevent="handlerCadastro">
             <p class="kicker">Biblioteca Digital</p>
             <h1>Criar cadastro</h1>
             <p class="subtitle">Preencha seus dados para acessar o sistema da biblioteca.</p>
@@ -39,9 +70,9 @@ const handlerCadastro = () => {
             <input class="cadastro-item" type="email" placeholder="Email" name="dsEmail" v-model="cadastro.dsEmail"
                 autocomplete="off" />
 
-            <button class="send" @click="handlerCadastro">Cadastrar</button>
+            <button class="send" type="submit">Cadastrar</button>
             <router-link class="back-login" to="/login">Ir para login</router-link>
-        </section>
+        </form>
 
     </main>
 </template>

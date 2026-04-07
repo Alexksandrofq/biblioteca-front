@@ -30,10 +30,49 @@ type LivroForm = {
 	cd_autor: number
 }
 
+type BibliotecarioApi = {
+	id?: number
+	nome?: string
+	nascimento?: string
+	sexo?: string
+}
+
+type BibliotecarioOption = {
+	id: number
+	nome: string
+}
+
+type CategoriaApi = {
+	id?: number
+	nome?: string
+	descricao?: string
+}
+
+type CategoriaOption = {
+	id: number
+	nome: string
+}
+
+type AutorApi = {
+	id?: number
+	nome?: string
+}
+
+type AutorOption = {
+	id: number
+	nome: string
+}
+
 const API_URL = 'http://127.0.0.1:8080/livro'
+const BIBLIOTECARIOS_URL = 'http://127.0.0.1:8080/bibliotecarios'
+const CATEGORIAS_URL = 'http://127.0.0.1:8080/categorias'
+const AUTORES_URL = 'http://127.0.0.1:8080/autores'
 const store = useLivroStore()
 
 const livros = ref<LivroExibicao[]>([])
+const bibliotecarios = ref<BibliotecarioOption[]>([])
+const categorias = ref<CategoriaOption[]>([])
+const autores = ref<AutorOption[]>([])
 const loading = ref(false)
 const salvando = ref(false)
 
@@ -87,12 +126,102 @@ const carregarLivros = async () => {
 	}
 }
 
+const carregarBibliotecarios = async () => {
+	try {
+		const response = await fetch(BIBLIOTECARIOS_URL, {
+			method: 'GET',
+			headers: getHeaders()
+		})
+
+		if (!response.ok) {
+			throw new Error('Erro ao buscar bibliotecarios.')
+		}
+
+		const data = await response.json()
+		const lista = Array.isArray(data) ? data : data?.data ?? []
+
+		bibliotecarios.value = lista
+			.map((item: BibliotecarioApi) => ({
+				id: Number(item.id ?? 0),
+				nome: item.nome ?? ''
+			}))
+			.filter((item: BibliotecarioOption) => item.id > 0)
+
+		if (formulario.value.cd_bibliotecario === 0 && bibliotecarios.value.length > 0) {
+			formulario.value.cd_bibliotecario = bibliotecarios.value[0]?.id ?? 0
+		}
+	} catch (error) {
+		const message = error instanceof Error ? error.message : 'Falha ao buscar bibliotecarios.'
+		alert(message)
+	}
+}
+
+const carregarCategorias = async () => {
+	try {
+		const response = await fetch(CATEGORIAS_URL, {
+			method: 'GET',
+			headers: getHeaders()
+		})
+
+		if (!response.ok) {
+			throw new Error('Erro ao buscar categorias.')
+		}
+
+		const data = await response.json()
+		const lista = Array.isArray(data) ? data : data?.data ?? []
+
+		categorias.value = lista
+			.map((item: CategoriaApi) => ({
+				id: Number(item.id ?? 0),
+				nome: item.nome ?? ''
+			}))
+			.filter((item: CategoriaOption) => item.id > 0)
+
+		if (formulario.value.cd_categoria === 0 && categorias.value.length > 0) {
+			formulario.value.cd_categoria = categorias.value[0]?.id ?? 0
+		}
+	} catch (error) {
+		const message = error instanceof Error ? error.message : 'Falha ao buscar categorias.'
+		alert(message)
+	}
+}
+
+const carregarAutores = async () => {
+	try {
+		const response = await fetch(AUTORES_URL, {
+			method: 'GET',
+			headers: getHeaders()
+		})
+
+		if (!response.ok) {
+			throw new Error('Erro ao buscar autores.')
+		}
+
+		const data = await response.json()
+		const lista = Array.isArray(data) ? data : data?.data ?? []
+
+		autores.value = lista
+			.map((item: AutorApi) => ({
+				id: Number(item.id ?? 0),
+				nome: item.nome ?? ''
+			}))
+			.filter((item: AutorOption) => item.id > 0)
+
+		if (formulario.value.cd_autor === 0 && autores.value.length > 0) {
+			formulario.value.cd_autor = autores.value[0]?.id ?? 0
+		}
+	} catch (error) {
+		const message = error instanceof Error ? error.message : 'Falha ao buscar autores.'
+		alert(message)
+	}
+}
+
 const limparFormulario = () => {
 	formulario.value = {
 		nm_livro: '',
-		cd_bibliotecario: 10,
-		cd_categoria: 5,
-		cd_autor: 5
+		cd_bibliotecario: bibliotecarios.value[0]?.id ?? 0,
+		cd_categoria: categorias.value[0]?.id ?? 0,
+		cd_autor: autores.value[0]?.id ?? 0
 	}
 }
 
@@ -150,6 +279,9 @@ const excluirLivro = async (id: number) => {
 
 onMounted(() => {
 	carregarLivros()
+	carregarBibliotecarios()
+	carregarCategorias()
+	carregarAutores()
 })
 </script>
 
@@ -174,15 +306,30 @@ onMounted(() => {
 				<div class="row">
 					<div>
 						<label for="cd_bibliotecario">Cd. bibliotecario</label>
-						<input id="cd_bibliotecario" v-model.number="formulario.cd_bibliotecario" type="number" min="1" required />
+						<select id="cd_bibliotecario" v-model.number="formulario.cd_bibliotecario" required>
+							<option :value="0" disabled>Selecione um bibliotecario</option>
+							<option v-for="bibliotecario in bibliotecarios" :key="bibliotecario.id" :value="bibliotecario.id">
+								{{ bibliotecario.nome }} (ID: {{ bibliotecario.id }})
+							</option>
+						</select>
 					</div>
 					<div>
 						<label for="cd_categoria">Categoria</label>
-						<input id="cd_categoria" v-model.number="formulario.cd_categoria" type="number" min="1" required />
+						<select id="cd_categoria" v-model.number="formulario.cd_categoria" required>
+							<option :value="0" disabled>Selecione uma categoria</option>
+							<option v-for="categoria in categorias" :key="categoria.id" :value="categoria.id">
+								{{ categoria.nome }} (ID: {{ categoria.id }})
+							</option>
+						</select>
 					</div>
 					<div>
 						<label for="cd_autor">Cd. autor</label>
-						<input id="cd_autor" v-model.number="formulario.cd_autor" type="number" min="1" required />
+						<select id="cd_autor" v-model.number="formulario.cd_autor" required>
+							<option :value="0" disabled>Selecione um autor</option>
+							<option v-for="autor in autores" :key="autor.id" :value="autor.id">
+								{{ autor.nome }} (ID: {{ autor.id }})
+							</option>
+						</select>
 					</div>
 				</div>
 
@@ -284,7 +431,8 @@ label {
 	color: #334155;
 }
 
-input {
+input,
+select {
 	border: 1px solid #cbd5e1;
 	border-radius: 8px;
 	padding: 0.58rem 0.7rem;
