@@ -21,44 +21,105 @@
 			</form>
 
 			<p v-if="mensagem" class="feedback" :class="sucesso ? 'ok' : 'erro'">{{ mensagem }}</p>
+
+			<div class="categorias-lista">
+				<div class="lista-topo">
+					<h2>Categorias cadastradas</h2>
+					<button type="button" class="btn-atualizar" @click="buscarCategorias" :disabled="carregandoCategorias">
+						{{ carregandoCategorias ? 'Atualizando...' : 'Atualizar' }}
+					</button>
+				</div>
+
+				<p v-if="carregandoCategorias" class="lista-info">Carregando categorias...</p>
+				<p v-else-if="categorias.length === 0" class="lista-info">Nenhuma categoria encontrada.</p>
+
+				<div v-else class="tabela-wrap">
+					<table>
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Nome</th>
+								<th>Descricao</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr v-for="categoria in categorias" :key="categoria.id">
+								<td>{{ categoria.id }}</td>
+								<td>{{ categoria.nome }}</td>
+								<td>{{ categoria.descricao }}</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
 		</div>
 	</section>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 
 type CategoriaPayload = {
 	nome: string
 	descricao: string
 }
 
+type CategoriaApi = {
+	id: number
+	nome: string
+	descricao: string
+}
+
 const form = reactive<CategoriaPayload>({
-	nome: 'Romance',
+	nome: '',
 	descricao: ''
 })
 
 const carregando = ref(false)
 const mensagem = ref('')
 const sucesso = ref(false)
+const carregandoCategorias = ref(false)
+const categorias = ref<CategoriaApi[]>([])
+
+const getHeaders = () => {
+	const token = localStorage.getItem('token')
+	return {
+		'Content-Type': 'application/json',
+		...(token ? { Authorization: `Bearer ${token}` } : {})
+	}
+}
+
+const buscarCategorias = async () => {
+	carregandoCategorias.value = true
+	try {
+		const response = await fetch('http://127.0.0.1:8080/categorias', {
+			method: 'GET',
+			headers: getHeaders()
+		})
+
+		if (!response.ok) {
+			throw new Error('Falha ao buscar categorias.')
+		}
+
+		const data = await response.json()
+		const lista = Array.isArray(data) ? data : data?.data ?? []
+		categorias.value = lista
+	} catch (error) {
+		mensagem.value = error instanceof Error ? error.message : 'Erro ao buscar categorias.'
+		sucesso.value = false
+	} finally {
+		carregandoCategorias.value = false
+	}
+}
 
 const enviarCategoria = async () => {
 	carregando.value = true
 	mensagem.value = ''
 
 	try {
-		const token = localStorage.getItem('token')
-
-		if (!token) {
-			throw new Error('Token nao encontrado no localStorage.')
-		}
-
 		const response = await fetch('http://127.0.0.1:8080/categorias', {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`
-			},
+			headers: getHeaders(),
 			body: JSON.stringify({
 				nome: form.nome,
 				descricao: form.descricao
@@ -72,6 +133,7 @@ const enviarCategoria = async () => {
 
 		sucesso.value = true
 		mensagem.value = 'Categoria cadastrada com sucesso.'
+		await buscarCategorias()
 	} catch (error) {
 		sucesso.value = false
 		mensagem.value = error instanceof Error ? error.message : 'Erro inesperado.'
@@ -79,6 +141,10 @@ const enviarCategoria = async () => {
 		carregando.value = false
 	}
 }
+
+onMounted(() => {
+	buscarCategorias()
+})
 </script>
 
 <style scoped>
@@ -237,6 +303,72 @@ h1 {
 	color: var(--erro);
 	background: var(--erro-bg);
 	border-color: rgba(180, 35, 24, 0.25);
+}
+
+.categorias-lista {
+	margin-top: 1.2rem;
+	padding-top: 1rem;
+	border-top: 1px dashed rgba(91, 100, 114, 0.35);
+}
+
+.lista-topo {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.6rem;
+	margin-bottom: 0.55rem;
+}
+
+.lista-topo h2 {
+	font-size: 1.05rem;
+	margin: 0;
+	color: #2a374a;
+}
+
+.btn-atualizar {
+	padding: 0.42rem 0.7rem;
+	font-size: 0.82rem;
+	font-weight: 700;
+	border-radius: 8px;
+	border: 1px solid #c8d2df;
+	background: #fff;
+	cursor: pointer;
+}
+
+.btn-atualizar:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.lista-info {
+	margin: 0.45rem 0;
+	font-size: 0.9rem;
+	color: #475569;
+}
+
+.tabela-wrap {
+	overflow-x: auto;
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9rem;
+}
+
+th,
+td {
+	padding: 0.52rem 0.48rem;
+	border-bottom: 1px solid #e4e7eb;
+	text-align: left;
+	vertical-align: top;
+}
+
+th {
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #526173;
 }
 
 @media (max-width: 640px) {

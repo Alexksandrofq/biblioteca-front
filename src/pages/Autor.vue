@@ -1,11 +1,50 @@
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 const autor = ref({
 	nome: '',
 });
 
 const enviando = ref(false);
+const carregandoAutores = ref(false);
+const autores = ref([]);
+
+const getHeaders = () => ({
+	'Content-Type': 'application/json',
+	'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+});
+
+const buscarAutores = async () => {
+	try {
+		carregandoAutores.value = true;
+
+		const response = await fetch('http://127.0.0.1:8080/autores', {
+			method: 'GET',
+			headers: getHeaders(),
+		});
+
+		if (!response.ok) {
+			throw new Error('Erro ao buscar autores.');
+		}
+
+		const data = await response.json();
+		autores.value = Array.isArray(data) ? data : data?.data || [];
+	} catch (error) {
+		Toastify({
+			text: error.message || 'Falha ao carregar autores.',
+			duration: 3000,
+			close: true,
+			gravity: 'bottom',
+			position: 'right',
+			stopOnFocus: true,
+			style: {
+				background: '#dc2626',
+			},
+		}).showToast();
+	} finally {
+		carregandoAutores.value = false;
+	}
+};
 
 const enviarAutor = async () => {
 	try {
@@ -13,16 +52,12 @@ const enviarAutor = async () => {
 
 		const response = await fetch('http://127.0.0.1:8080/autores', {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
+			headers: getHeaders(),
 			body: JSON.stringify(autor.value),
 		});
 
-		const data = await response.json();
-
 		if (!response.ok) {
-			throw new Error(data?.message || 'Erro ao cadastrar autor.');
+			throw new Error('Erro ao cadastrar autor.');
 		}
 
 		Toastify({
@@ -37,8 +72,8 @@ const enviarAutor = async () => {
 			},
 		}).showToast();
 
-		console.log('Resposta da API:', data);
 		autor.value.nome = '';
+		await buscarAutores();
 	} catch (error) {
 		Toastify({
 			text: error.message || 'Falha na requisicao.',
@@ -55,6 +90,10 @@ const enviarAutor = async () => {
 		enviando.value = false;
 	}
 };
+
+	onMounted(() => {
+		buscarAutores();
+	});
 </script>
 
 <template>
@@ -73,6 +112,35 @@ const enviarAutor = async () => {
 			<button class="send" @click="enviarAutor" :disabled="enviando">
 				{{ enviando ? 'Enviando...' : 'Enviar autor' }}
 			</button>
+
+			<div class="autores-lista">
+				<div class="lista-topo">
+					<h2>Autores cadastrados</h2>
+					<button class="refresh" type="button" @click="buscarAutores" :disabled="carregandoAutores">
+						{{ carregandoAutores ? 'Atualizando...' : 'Atualizar' }}
+					</button>
+				</div>
+
+				<p v-if="carregandoAutores" class="lista-info">Carregando autores...</p>
+				<p v-else-if="autores.length === 0" class="lista-info">Nenhum autor encontrado.</p>
+
+				<div v-else class="table-wrap">
+					<table>
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Nome</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr v-for="item in autores" :key="item.id">
+								<td>{{ item.id }}</td>
+								<td>{{ item.nome }}</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
 		</section>
 	</main>
 </template>
@@ -205,6 +273,71 @@ label {
 .send:disabled {
 	opacity: 0.68;
 	cursor: not-allowed;
+}
+
+.autores-lista {
+	margin-top: 1.25rem;
+	padding-top: 1rem;
+	border-top: 1px dashed rgba(69, 96, 99, 0.35);
+}
+
+.lista-topo {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
+	margin-bottom: 0.55rem;
+}
+
+.lista-topo h2 {
+	font-size: 1.05rem;
+	margin: 0;
+	color: var(--text);
+}
+
+.refresh {
+	padding: 0.42rem 0.7rem;
+	font-size: 0.82rem;
+	font-weight: 700;
+	border-radius: 8px;
+	border: 1px solid #c8d2df;
+	background: #fff;
+	cursor: pointer;
+}
+
+.refresh:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.lista-info {
+	margin: 0.45rem 0;
+	font-size: 0.9rem;
+	color: #475569;
+}
+
+.table-wrap {
+	overflow-x: auto;
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9rem;
+}
+
+th,
+td {
+	padding: 0.52rem 0.48rem;
+	border-bottom: 1px solid #e4e7eb;
+	text-align: left;
+}
+
+th {
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #526173;
 }
 
 @media (max-width: 640px) {
