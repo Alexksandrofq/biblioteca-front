@@ -7,12 +7,17 @@ const autor = ref({
 
 const enviando = ref(false);
 const carregandoAutores = ref(false);
+const editandoAutorId = ref(null);
+const nomeEdicao = ref('');
 const autores = ref([]);
 
-const getHeaders = () => ({
-	'Content-Type': 'application/json',
-	'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-});
+const getHeaders = () => {
+	const token = localStorage.getItem('token');
+	return {
+		'Content-Type': 'application/json',
+		...(token ? { Authorization: `Bearer ${token}` } : {}),
+	};
+};
 
 const buscarAutores = async () => {
 	try {
@@ -20,7 +25,10 @@ const buscarAutores = async () => {
 
 		const response = await fetch('http://127.0.0.1:8080/autores', {
 			method: 'GET',
-			headers: getHeaders(),
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+			}
 		});
 
 		if (!response.ok) {
@@ -52,7 +60,10 @@ const enviarAutor = async () => {
 
 		const response = await fetch('http://127.0.0.1:8080/autores', {
 			method: 'POST',
-			headers: getHeaders(),
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+			},
 			body: JSON.stringify(autor.value),
 		});
 
@@ -91,9 +102,81 @@ const enviarAutor = async () => {
 	}
 };
 
-	onMounted(() => {
-		buscarAutores();
-	});
+const iniciarEdicao = (autorSelecionado) => {
+	editandoAutorId.value = autorSelecionado.id;
+	nomeEdicao.value = autorSelecionado.nome || '';
+};
+
+const cancelarEdicao = () => {
+	editandoAutorId.value = null;
+	nomeEdicao.value = '';
+};
+
+const salvarEdicao = async (id) => {
+	if (!nomeEdicao.value.trim()) {
+		Toastify({
+			text: 'Informe o nome do autor para salvar.',
+			duration: 3000,
+			close: true,
+			gravity: 'bottom',
+			position: 'right',
+			stopOnFocus: true,
+			style: {
+				background: '#d97706',
+			},
+		}).showToast();
+		return;
+	}
+
+	try {
+		enviando.value = true;
+
+		const response = await fetch(`http://127.0.0.1:8080/autores/${id}`, {
+			method: 'PUT',
+			headers: getHeaders(),
+			body: JSON.stringify({
+				nome: nomeEdicao.value.trim(),
+			}),
+		});
+
+		if (!response.ok) {
+			throw new Error('Erro ao editar autor.');
+		}
+
+		Toastify({
+			text: 'Autor atualizado com sucesso!',
+			duration: 3000,
+			close: true,
+			gravity: 'bottom',
+			position: 'right',
+			stopOnFocus: true,
+			style: {
+				background: '#16a34a',
+			},
+		}).showToast();
+
+		cancelarEdicao();
+		await buscarAutores();
+	} catch (error) {
+		Toastify({
+			text: error.message || 'Falha ao editar autor.',
+			duration: 3000,
+			close: true,
+			gravity: 'bottom',
+			position: 'right',
+			stopOnFocus: true,
+			style: {
+				background: '#dc2626',
+			},
+		}).showToast();
+	} finally {
+		enviando.value = false;
+	}
+};
+
+onMounted(() => {
+	buscarAutores();
+});
 </script>
 
 <template>
@@ -130,12 +213,39 @@ const enviarAutor = async () => {
 							<tr>
 								<th>ID</th>
 								<th>Nome</th>
+								<th>Acoes</th>
 							</tr>
 						</thead>
 						<tbody>
 							<tr v-for="item in autores" :key="item.id">
 								<td>{{ item.id }}</td>
-								<td>{{ item.nome }}</td>
+								<td>
+									<input
+										v-if="editandoAutorId === item.id"
+										class="item item-edicao"
+										type="text"
+										v-model="nomeEdicao"
+									/>
+									<span v-else>{{ item.nome }}</span>
+								</td>
+								<td class="acoes-autores">
+									<button
+										v-if="editandoAutorId !== item.id"
+										type="button"
+										class="btn-acao"
+										@click="iniciarEdicao(item)"
+									>
+										Editar
+									</button>
+									<template v-else>
+										<button type="button" class="btn-acao btn-salvar" @click="salvarEdicao(item.id)" :disabled="enviando">
+											{{ enviando ? 'Salvando...' : 'Salvar' }}
+										</button>
+										<button type="button" class="btn-acao btn-cancelar" @click="cancelarEdicao" :disabled="enviando">
+											Cancelar
+										</button>
+									</template>
+								</td>
 							</tr>
 						</tbody>
 					</table>
@@ -338,6 +448,44 @@ th {
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 	color: #526173;
+}
+
+.item-edicao {
+	padding: 0.45rem 0.6rem;
+	font-size: 0.88rem;
+	width: 100%;
+	max-width: 13rem;
+}
+
+.acoes-autores {
+	white-space: nowrap;
+	display: flex;
+	gap: 0.4rem;
+}
+
+.btn-acao {
+	padding: 0.32rem 0.58rem;
+	font-size: 0.8rem;
+	font-weight: 700;
+	border-radius: 8px;
+	border: 1px solid #cbd5e1;
+	background: #fff;
+	cursor: pointer;
+}
+
+.btn-salvar {
+	border-color: #16a34a;
+	color: #166534;
+}
+
+.btn-cancelar {
+	border-color: #f59e0b;
+	color: #92400e;
+}
+
+.btn-acao:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
 }
 
 @media (max-width: 640px) {

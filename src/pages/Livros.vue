@@ -1,67 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useLivroStore } from '../stores/livroStore'
+import type { AutorOption } from '@/types/AutorOption'
+import type { AutorApi } from '@/types/AutorApi'
+import type { LivroExibicao } from '@/types/LivroExibicao'
+import type { BibliotecarioOption } from '@/types/BibliotecarioOption'
+import type { CategoriaOption } from '@/types/CategoriaOption'
+import type { LivroForm } from '@/types/LivroForm'
+import type { LivroApi } from '@/types/LivroApi'
+import type { BibliotecarioApi } from '@/types/BibliotecarioApi'
+import type { CategoriaApi } from '@/types/CategoriaApi'
 
-type LivroApi = {
-	id?: number
-	nome?: string
-	categoria?: number
-	autor?: number
-	bibliotecario?: number
-	cd_livro?: number
-	nm_livro?: string
-	cd_bibliotecario?: number
-	cd_categoria?: number
-	cd_autor?: number
-}
 
-type LivroExibicao = {
-	id: number
-	nome: string
-	categoria: number
-	autor: number
-	bibliotecario: number
-}
-
-type LivroForm = {
-	nm_livro: string
-	cd_bibliotecario: number
-	cd_categoria: number
-	cd_autor: number
-}
-
-type BibliotecarioApi = {
-	id?: number
-	nome?: string
-	nascimento?: string
-	sexo?: string
-}
-
-type BibliotecarioOption = {
-	id: number
-	nome: string
-}
-
-type CategoriaApi = {
-	id?: number
-	nome?: string
-	descricao?: string
-}
-
-type CategoriaOption = {
-	id: number
-	nome: string
-}
-
-type AutorApi = {
-	id?: number
-	nome?: string
-}
-
-type AutorOption = {
-	id: number
-	nome: string
-}
 
 const API_URL = 'http://127.0.0.1:8080/livro'
 const BIBLIOTECARIOS_URL = 'http://127.0.0.1:8080/bibliotecarios'
@@ -85,14 +35,6 @@ const formulario = ref<LivroForm>({
 
 const totalLivros = computed(() => livros.value.length)
 
-const getHeaders = () => {
-	const token = localStorage.getItem('token')
-	return {
-		'Content-Type': 'application/json',
-		...(token ? { Authorization: `Bearer ${token}` } : {})
-	}
-}
-
 const normalizarLivro = (livro: LivroApi): LivroExibicao => {
 	return {
 		id: livro.id ?? livro.cd_livro ?? 0,
@@ -108,7 +50,10 @@ const carregarLivros = async () => {
 	try {
 		const response = await fetch(API_URL, {
 			method: 'GET',
-			headers: getHeaders()
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${localStorage.getItem('token') ?? ''}`
+			}
 		})
 
 		if (!response.ok) {
@@ -130,7 +75,10 @@ const carregarBibliotecarios = async () => {
 	try {
 		const response = await fetch(BIBLIOTECARIOS_URL, {
 			method: 'GET',
-			headers: getHeaders()
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${localStorage.getItem('token') ?? ''}`
+			}
 		})
 
 		if (!response.ok) {
@@ -160,7 +108,10 @@ const carregarCategorias = async () => {
 	try {
 		const response = await fetch(CATEGORIAS_URL, {
 			method: 'GET',
-			headers: getHeaders()
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${localStorage.getItem('token') ?? ''}`
+			}
 		})
 
 		if (!response.ok) {
@@ -190,7 +141,10 @@ const carregarAutores = async () => {
 	try {
 		const response = await fetch(AUTORES_URL, {
 			method: 'GET',
-			headers: getHeaders()
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${localStorage.getItem('token') ?? ''}`
+			}
 		})
 
 		if (!response.ok) {
@@ -244,7 +198,10 @@ const salvarLivro = async () => {
 
 		const response = await fetch(API_URL, {
 			method: 'POST',
-			headers: getHeaders(),
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${localStorage.getItem('token') ?? ''}`
+			},
 			body: JSON.stringify(payload)
 		})
 
@@ -308,7 +265,8 @@ onMounted(() => {
 						<label for="cd_bibliotecario">Cd. bibliotecario</label>
 						<select id="cd_bibliotecario" v-model.number="formulario.cd_bibliotecario" required>
 							<option :value="0" disabled>Selecione um bibliotecario</option>
-							<option v-for="bibliotecario in bibliotecarios" :key="bibliotecario.id" :value="bibliotecario.id">
+							<option v-for="bibliotecario in bibliotecarios" :key="bibliotecario.id"
+								:value="bibliotecario.id">
 								{{ bibliotecario.nome }} (ID: {{ bibliotecario.id }})
 							</option>
 						</select>
@@ -367,7 +325,8 @@ onMounted(() => {
 							<td>{{ livro.categoria }}</td>
 							<td>{{ livro.autor }}</td>
 							<td class="acoes-grid">
-								<button class="btn-mini danger" type="button" @click="excluirLivro(livro.id)">Excluir</button>
+								<button class="btn-mini danger" type="button"
+									@click="excluirLivro(livro.id)">Excluir</button>
 							</td>
 						</tr>
 					</tbody>
@@ -415,7 +374,7 @@ h2 {
 }
 
 .campo-full,
-.row > div {
+.row>div {
 	display: grid;
 	gap: 0.35rem;
 }

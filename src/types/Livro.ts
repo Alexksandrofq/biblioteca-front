@@ -6,10 +6,3 @@ export interface Livro {
   cd_autor: number
   sn_locado: string
 }
-
-export interface LivroFormData {
-  nm_livro: string
-  cd_bibliotecario: number
-  cd_categoria: number
-  cd_autor: number
-}
