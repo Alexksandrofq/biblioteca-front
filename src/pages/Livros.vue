@@ -73,7 +73,6 @@ const abrirFormularioCriacao = () => {
       </button>
     </div>
 
-    <!-- Formulário -->
     <div v-if="mostraFormulario" class="formulario">
       <h2>{{ editandoId ? 'Editar Livro' : 'Novo Livro' }}</h2>
       <form @submit.prevent="salvar">
@@ -165,7 +164,6 @@ const abrirFormularioCriacao = () => {
       </form>
     </div>
 
-    <!-- Estatísticas -->
     <div class="stats">
       <div class="stat-card">
         <span class="stat-label">Total de Livros</span>
@@ -181,7 +179,6 @@ const abrirFormularioCriacao = () => {
       </div>
     </div>
 
-    <!-- Lista de Livros -->
     <div class="lista">
       <h2>Lista de Livros</h2>
       <div v-if="store.livros.length === 0" class="vazio">
@@ -253,7 +250,6 @@ const abrirFormularioCriacao = () => {
   margin: 0;
 }
 
-/* Formulário */
 .formulario {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 30px;
